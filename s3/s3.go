@@ -4,11 +4,13 @@ import (
 	"github.com/crowdmob/goamz/aws"
 	"github.com/crowdmob/goamz/s3"
 	"io"
+	"io/ioutil"
+	//	"log"
 	"os"
 	"regexp"
 )
 
-const BUF_LEN = 1 << 20
+const BUF_LEN = 1 << 20 // 1 MB
 
 var s3Regexp = regexp.MustCompile(`s3://(.+?)(/.+)`)
 
@@ -39,14 +41,54 @@ func (s *S3Connection) UploadFile(local string, remote string, contenttype strin
 	return err
 }
 
+func fileExists(fn string) bool {
+	if _, err := os.Stat(fn); err == nil {
+		return true
+	}
+	return false
+}
+
+func getEtag(bucket *s3.Bucket, key string) (etag string, err error) {
+	headers := make(map[string][]string)
+	resp, err := bucket.Head(key, headers)
+	if err != nil {
+		return "", err
+	}
+	etag = resp.Header["Etag"][0]
+	return etag, err
+}
+
+func checkFileExistence(bucket *s3.Bucket, key string, local string) bool {
+	if fileExists(local) && fileExists(local+".etag") {
+		remote_etag, err := getEtag(bucket, key)
+		if err != nil {
+			return false
+		}
+		local_etag, _ := ioutil.ReadFile(local + ".etag")
+		if string(local_etag) == remote_etag {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *S3Connection) DownloadFile(remote string, local string) (err error) {
+	bucketname, key := parseS3Uri(remote)
+	bucket := s.connection.Bucket(bucketname)
+	if checkFileExistence(bucket, key, local) {
+		return nil
+	}
+
 	f, err := os.Create(local)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	bucketname, key := parseS3Uri(remote)
-	bucket := s.connection.Bucket(bucketname)
+
+	etag, err := getEtag(bucket, key)
+	if err != nil {
+		return err
+	}
 	reader, err := bucket.GetReader(key)
 	if err != nil {
 		return err
@@ -66,6 +108,7 @@ func (s *S3Connection) DownloadFile(remote string, local string) (err error) {
 			break
 		}
 	}
+	err = ioutil.WriteFile(local+".etag", []byte(etag), 0644)
 	return err
 }
 

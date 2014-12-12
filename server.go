@@ -5,13 +5,12 @@ import (
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
 	"log"
-	"math/rand"
 	"net/http"
 	"runtime"
+	"server/convert"
 	"server/s3"
 	"server/settings"
 	"server/work"
-	"time"
 )
 
 const SETTINGS_FILE = "settings.yml"
@@ -29,8 +28,11 @@ func worker(id int, workchan WorkChan) {
 	var _ = s3conn
 	for {
 		w := <-workchan
-		naptime := time.Duration(rand.Intn(10000)) * time.Millisecond
-		time.Sleep(naptime)
+		log.Printf("Worker got: %+v\n", w)
+		err := convert.Convert(ServerSettings, s3conn, &w)
+		if err != nil {
+			log.Printf("Error: %s", err.Error())
+		}
 		log.Printf("Worker %d processed %s\n", id, w.Id)
 	}
 }

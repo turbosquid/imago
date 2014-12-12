@@ -5,11 +5,13 @@ import (
 )
 
 type Work struct {
-	Id      string
-	Status  string
-	Infile  string
-	Outfile string
-	Opts    string
+	Id         string
+	Status     string
+	Infile     string
+	Outfile    string
+	Mimetype   string
+	Operations []string
+	Output     string
 }
 
 func (w *Work) Initialize() {
