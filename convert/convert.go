@@ -19,7 +19,7 @@ func Convert(settings *settings.Settings, s3 *s3.S3Connection, work *work.Work) 
 	if err != nil {
 		return err
 	}
-	args := make([]string, len(work.Operations)+2)
+	args := make([]string, len(work.Operations)*2)
 	args = append(args, "/usr/local/bin/convert")
 	args = append(args, local_infile)
 	for _, op := range work.Operations {
