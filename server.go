@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"server/convert"
 	"server/s3"
+	"server/scoreboard"
 	"server/settings"
 	"server/work"
 )
@@ -51,6 +52,7 @@ func addNewWork(req *http.Request, r render.Render, c WorkChan) {
 		error_response(r, "JSON Parse: "+err.Error())
 	} else {
 		w.Initialize()
+		scoreboard.UpdateWork(&w)
 		c <- w
 		r.JSON(200, map[string]interface{}{"status": "ok", "id": w.Id})
 	}
@@ -58,6 +60,18 @@ func addNewWork(req *http.Request, r render.Render, c WorkChan) {
 
 func queueLength(r render.Render, c WorkChan) {
 	r.JSON(200, map[string]interface{}{"status": "ok", "length": len(c)})
+}
+
+func getWork(params martini.Params, r render.Render) {
+	var w work.Work
+	w.Id = params["id"]
+	scoreboard.GetWorkChannel <- w
+	s := <-scoreboard.GetWorkChannel
+	if s.Status == "" {
+		r.JSON(404, "Not found")
+	} else {
+		r.JSON(200, s)
+	}
 }
 
 func main() {
@@ -79,6 +93,9 @@ func main() {
 	m.Get("/api/v1/queue_length", func(r render.Render) {
 		queueLength(r, workQueue)
 	})
+	m.Get("/api/v1/work/:id", getWork)
+
 	startWorkers(workQueue)
+	scoreboard.Start()
 	m.Run()
 }

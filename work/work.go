@@ -18,5 +18,5 @@ func (w *Work) Initialize() {
 	u := uuid.NewV4()
 	uuid.SwitchFormat(uuid.Clean)
 	w.Id = u.String()
-	w.Status = ""
+	w.Status = "queued"
 }
