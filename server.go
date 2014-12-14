@@ -6,6 +6,7 @@ import (
 	"github.com/martini-contrib/render"
 	"log"
 	"net/http"
+	"os"
 	"runtime"
 	"server/convert"
 	"server/s3"
@@ -76,8 +77,9 @@ func getWork(params martini.Params, r render.Render) {
 
 func main() {
 	ServerSettings = settings.LoadSettings(SETTINGS_FILE)
+	log.Println("Cleaning up working directory", ServerSettings.WorkDir, "...")
+	os.RemoveAll(ServerSettings.WorkDir)
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.Printf("MAXPROCS is: %d\n", runtime.GOMAXPROCS(0))
 	log.Printf("Settings: %+v\n", *(ServerSettings.SafeCopy()))
 	var workQueue = make(chan work.Work, ServerSettings.QueueSize)
