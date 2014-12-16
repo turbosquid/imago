@@ -1,7 +1,7 @@
 package scoreboard
 
 import (
-	"imago/work"
+	"github.com/mowings/imago/work"
 	"log"
 	"time"
 )

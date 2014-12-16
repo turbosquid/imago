@@ -1,10 +1,10 @@
 package convert
 
 import (
-	"imago/s3"
-	"imago/scoreboard"
-	"imago/settings"
-	"imago/work"
+	"github.com/mowings/imago/s3"
+	"github.com/mowings/imago/scoreboard"
+	"github.com/mowings/imago/settings"
+	"github.com/mowings/imago/work"
 	"os"
 	"os/exec"
 	"path/filepath"
