@@ -1,13 +1,13 @@
 package convert
 
 import (
+	"imago/s3"
+	"imago/scoreboard"
+	"imago/settings"
+	"imago/work"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"server/s3"
-	"server/scoreboard"
-	"server/settings"
-	"server/work"
 	"strings"
 )
 

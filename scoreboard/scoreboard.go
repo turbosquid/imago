@@ -1,8 +1,8 @@
 package scoreboard
 
 import (
+	"imago/work"
 	"log"
-	"server/work"
 	"time"
 )
 
