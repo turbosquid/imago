@@ -3,3 +3,4 @@ num_workers: 8
 work_dir: "./work_dir"
 aws_key: "CHANGEME"
 aws_secret: "CHANGEME"
+im_path: "/usr/bin/convert"

@@ -15,6 +15,7 @@ type Settings struct {
 	AwsKey     string `yaml:"aws_key"`
 	AwsSecret  string `yaml:"aws_secret"`
 	WorkDir    string `yaml:"work_dir"`
+	ImPath     string `yaml:"im_path"`
 }
 
 func LoadSettings(fn string) *Settings {
@@ -22,7 +23,7 @@ func LoadSettings(fn string) *Settings {
 		panic("Unable to open config file " + fn + ": " + err.Error())
 	}
 	dat, _ := ioutil.ReadFile(fn)
-	settings := Settings{NUM_WORKERS, QUEUE_SIZE, "changeme", "changeme", "."}
+	settings := Settings{NUM_WORKERS, QUEUE_SIZE, "changeme", "changeme", ".", ""}
 	err := yaml.Unmarshal(dat, &settings)
 	if err != nil {
 		panic("Unable to parse YAML: " + err.Error())
