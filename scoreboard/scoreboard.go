@@ -6,10 +6,20 @@ import (
 	"time"
 )
 
-var updateWorkChannel = make(chan *work.Work)
-var GetWorkChannel = make(chan work.Work)
-
 const TIMEOUT = 30
+
+type Scoreboard struct {
+	updateWorkChannel chan work.Work
+	GetWorkChannel    chan work.Work
+}
+
+func New() (scoreboard *Scoreboard) {
+	scoreboard = new(Scoreboard)
+	scoreboard.updateWorkChannel = make(chan work.Work)
+	scoreboard.GetWorkChannel = make(chan work.Work)
+	go scoreboard.worker()
+	return scoreboard
+}
 
 type WorkEntry struct {
 	Work      *work.Work
@@ -21,15 +31,15 @@ func (w *WorkEntry) touch() {
 }
 
 // Call to update a work. Makes a copy of the work before putting it on the channel
-func UpdateWork(work *work.Work) {
+func (scoreboard *Scoreboard) UpdateWork(work *work.Work) {
 	work_copy := *work
-	updateWorkChannel <- &work_copy
+	scoreboard.updateWorkChannel <- work_copy
 }
 
 // Private worker
-func worker() {
+func (scoreboard *Scoreboard) worker() {
 	workerMap := make(map[string]*WorkEntry)
-	var w *work.Work
+	var w work.Work
 
 	// Set up timeout goroutine
 	timeout := make(chan bool, 1)
@@ -42,21 +52,17 @@ func worker() {
 
 	for {
 		select {
-		case w = <-updateWorkChannel:
-			workerMap[w.Id] = &WorkEntry{w, time.Now()}
+		case w = <-scoreboard.updateWorkChannel:
+			workerMap[w.Id] = &WorkEntry{&w, time.Now()}
 			log.Println("Updated worker", w.Id, w.Status)
-		case work_check := <-GetWorkChannel:
+		case work_check := <-scoreboard.GetWorkChannel:
 			if workerMap[work_check.Id] != nil {
 				work_check = *(workerMap[work_check.Id].Work)
 			} else {
 				work_check.Status = ""
 			}
-			GetWorkChannel <- work_check
+			scoreboard.GetWorkChannel <- work_check
 		case <-timeout:
 		}
 	}
-}
-
-func Start() {
-	go worker()
 }
