@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func Convert(settings *settings.Settings, s3 *s3.S3Connection, work *work.Work) (err error) {
+func Convert(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3 *s3.S3Connection, work *work.Work) (err error) {
 
 	defer func() {
 		if err != nil {
