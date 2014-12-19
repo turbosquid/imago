@@ -61,7 +61,7 @@ func (scoreboard *Scoreboard) worker() {
 
 	for {
 		select {
-		case w := <-scoreboard.updateWorkChannel:
+		case w := <-scoreboard.updateWorkChannel: // Update work status
 			if mapentry, ok := workerMap[w.Id]; ok {
 				mapentry.touch()
 				// We should only get here on status changes, but just to be sure, be sure status us changing
@@ -76,7 +76,7 @@ func (scoreboard *Scoreboard) worker() {
 				workerMap[w.Id] = &(workEntry{&w, time.Now(), nil})
 			}
 			log.Println("Updated worker", w.Id, w.Status)
-		case work_check := <-scoreboard.GetWorkChannel:
+		case work_check := <-scoreboard.GetWorkChannel: /// Request work status
 			var work_data work.Work
 			if workerMap[work_check.Id] != nil {
 				work_data = *(workerMap[work_check.Id].Work)

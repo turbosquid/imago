@@ -19,6 +19,14 @@ import (
 
 const SETTINGS_FILE = "settings.yml"
 
+type WorkStatusResult int
+
+const (
+	GetOk WorkStatusResult = iota
+	GetNotFound
+	GetTimeout
+)
+
 type WorkChan chan work.Work
 
 type Server struct {
@@ -69,7 +77,7 @@ func (server *Server) queueLength(r render.Render, c WorkChan) {
 	r.JSON(200, map[string]interface{}{"status": "ok", "length": len(c)})
 }
 
-func (server *Server) getWorkById(id string, timeout int) *work.Work {
+func (server *Server) getWorkById(id string, timeout int) (*work.Work, WorkStatusResult) {
 	c := make(chan work.Work)
 	longpoll := false
 	if timeout > 0 {
@@ -82,25 +90,29 @@ func (server *Server) getWorkById(id string, timeout int) *work.Work {
 		select {
 		case s = <-c:
 		case <-time.After(time.Duration(timeout) * time.Second):
+			return &s, GetTimeout
 		}
 	} else {
 		s = <-c
 	}
 	if s.Status == "" {
-		return nil
+		return &s, GetNotFound
 	} else {
-		return &s
+		return &s, GetOk
 	}
 }
 
 func (server *Server) getWork(params martini.Params, r render.Render, req *http.Request) {
 	timeout := 0
 	timeout, _ = strconv.Atoi(req.URL.Query().Get("timeout"))
-	w := server.getWorkById(params["id"], timeout)
-	if w == nil {
-		r.JSON(404, "Not found")
-	} else {
+	w, res := server.getWorkById(params["id"], timeout)
+	switch res {
+	case GetOk:
 		r.JSON(200, w)
+	case GetNotFound:
+		r.JSON(404, "Not found")
+	case GetTimeout:
+		r.JSON(202, "Timed out checking work status")
 	}
 }
 
