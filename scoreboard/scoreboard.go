@@ -45,7 +45,10 @@ func (scoreboard *Scoreboard) UpdateWork(work *work.Work) {
 
 func notifyWorkStatus(c chan work.Work, w work.Work) {
 	log.Println("Poll notification: ", w.Id)
-	c <- w
+	select {
+	case c <- w:
+	default:
+	}
 	log.Println("done.")
 }
 
