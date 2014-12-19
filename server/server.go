@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 )
 
 const SETTINGS_FILE = "settings.yml"
@@ -67,9 +68,13 @@ func (server *Server) queueLength(r render.Render, c WorkChan) {
 	r.JSON(200, map[string]interface{}{"status": "ok", "length": len(c)})
 }
 
-func (server *Server) getWorkById(id string) *work.Work {
+func (server *Server) getWorkById(id string, timeout int) *work.Work {
 	c := make(chan work.Work)
-	w := scoreboard.WorkStatusRequest{Id: id, Chan: c, LongPoll: false}
+	longpoll := false
+	if timeout > 0 {
+		longpoll = true
+	}
+	w := scoreboard.WorkStatusRequest{Id: id, Chan: c, LongPoll: longpoll}
 	server.Scoreboard.GetWorkChannel <- w
 	s := <-c
 	if s.Status == "" {
@@ -79,27 +84,10 @@ func (server *Server) getWorkById(id string) *work.Work {
 	}
 }
 
-func (server *Server) longPollGetWork(params martini.Params, r render.Render) {
-	w := server.getWorkById(params["id"])
-	if w == nil {
-		r.JSON(404, "Not found")
-	} else {
-		if w.Status != "done" && w.Status != "error" {
-			lpmsg := scoreboard.LongPollChanMessage{w.Id, nil}
-			server.Scoreboard.LongPollChanRequest <- lpmsg
-			lpresponse := <-server.Scoreboard.LongPollChanRequest
-			log.Println("Waiting on work completion")
-			r := <-*lpresponse.LongPollChan
-			w = &r
-		}
-
-		r.JSON(200, w)
-	}
-
-}
-
-func (server *Server) getWork(params martini.Params, r render.Render) {
-	w := server.getWorkById(params["id"])
+func (server *Server) getWork(params martini.Params, r render.Render, req *http.Request) {
+	timeout := 0
+	timeout, _ = strconv.Atoi(req.URL.Query().Get("timeout"))
+	w := server.getWorkById(params["id"], timeout)
 	if w == nil {
 		r.JSON(404, "Not found")
 	} else {
@@ -133,11 +121,8 @@ func New() (server *Server) {
 	server.martini.Get("/api/v1/queue_length", func(r render.Render) {
 		server.queueLength(r, workQueue)
 	})
-	server.martini.Get("/api/v1/work/:id", func(params martini.Params, r render.Render) {
-		server.getWork(params, r)
-	})
-	server.martini.Get("/api/v1/work/poll/:id", func(params martini.Params, r render.Render) {
-		server.longPollGetWork(params, r)
+	server.martini.Get("/api/v1/work/:id", func(params martini.Params, r render.Render, req *http.Request) {
+		server.getWork(params, r, req)
 	})
 
 	server.startWorkers(workQueue)

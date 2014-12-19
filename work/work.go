@@ -20,3 +20,7 @@ func (w *Work) Initialize() {
 	w.Id = u.String()
 	w.Status = "queued"
 }
+
+func (w *Work) IsComplete() bool {
+	return (w.Status == "done" || w.Status == "error")
+}

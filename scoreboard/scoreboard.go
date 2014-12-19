@@ -8,11 +8,6 @@ import (
 
 const TIMEOUT = 30
 
-type LongPollChanMessage struct {
-	Id           string
-	LongPollChan *chan work.Work
-}
-
 type WorkStatusRequest struct {
 	Id       string
 	Chan     chan work.Work
@@ -20,9 +15,8 @@ type WorkStatusRequest struct {
 }
 
 type Scoreboard struct {
-	updateWorkChannel   chan work.Work
-	GetWorkChannel      chan WorkStatusRequest
-	LongPollChanRequest chan LongPollChanMessage
+	updateWorkChannel chan work.Work
+	GetWorkChannel    chan WorkStatusRequest
 }
 
 func New() (scoreboard *Scoreboard) {
@@ -49,6 +43,12 @@ func (scoreboard *Scoreboard) UpdateWork(work *work.Work) {
 	scoreboard.updateWorkChannel <- work_copy
 }
 
+func notifyWorkStatus(c chan work.Work, w work.Work) {
+	log.Println("Poll notification: ", w.Id)
+	c <- w
+	log.Println("done.")
+}
+
 // Private worker
 func (scoreboard *Scoreboard) worker() {
 	workerMap := make(map[string]*WorkEntry)
@@ -61,24 +61,27 @@ func (scoreboard *Scoreboard) worker() {
 				// We should only get here on status changes, but just to be sure, be sure status us changing
 				old_status := mapentry.Work.Status
 				mapentry.Work = &w
-				if old_status != mapentry.Work.Status {
-					if mapentry.Work.Status == "error" || mapentry.Work.Status == "done" {
-						log.Println("Reporting work completion on long poll channel for ", w.Id)
-						*mapentry.LongPollChan <- *mapentry.Work
-					}
+				if old_status != mapentry.Work.Status && mapentry.Work.IsComplete() && mapentry.LongPollChan != nil {
+					go notifyWorkStatus(*mapentry.LongPollChan, *mapentry.Work)
+					mapentry.LongPollChan = nil
 				}
 
 			} else {
-				c := make(chan work.Work, 1)
-				workerMap[w.Id] = &(WorkEntry{&w, time.Now(), &c})
+				workerMap[w.Id] = &(WorkEntry{&w, time.Now(), nil})
 			}
 			log.Println("Updated worker", w.Id, w.Status)
 		case work_check := <-scoreboard.GetWorkChannel:
 			var work_data work.Work
 			if workerMap[work_check.Id] != nil {
 				work_data = *(workerMap[work_check.Id].Work)
+				if work_check.LongPoll && !work_data.IsComplete() {
+					workerMap[work_check.Id].LongPollChan = &work_check.Chan
+				} else {
+					go notifyWorkStatus(work_check.Chan, work_data)
+				}
+			} else {
+				go notifyWorkStatus(work_check.Chan, work_data)
 			}
-			work_check.Chan <- work_data
 
 		case <-time.After(time.Second * TIMEOUT):
 		}
