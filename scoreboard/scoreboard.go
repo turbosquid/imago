@@ -8,17 +8,31 @@ import (
 
 const TIMEOUT = 30
 
+// Public work status request type.
 type WorkStatusRequest struct {
-	Id       string
-	Chan     chan work.Work
-	LongPoll bool
+	Id       string         // Id of interest
+	Chan     chan work.Work // Response channel
+	LongPoll bool           // If false return status immediately, else wait until job is complete
 }
 
+// Private scoreboard entry
+type workEntry struct {
+	Work         *work.Work
+	UpdatedAt    time.Time
+	LongPollChan *chan work.Work
+}
+
+func (w *workEntry) touch() {
+	w.UpdatedAt = time.Now()
+}
+
+// Scoreboard
 type Scoreboard struct {
 	updateWorkChannel chan work.Work
 	GetWorkChannel    chan WorkStatusRequest
 }
 
+// Scoreboard Ctor
 func New() (scoreboard *Scoreboard) {
 	scoreboard = new(Scoreboard)
 	scoreboard.updateWorkChannel = make(chan work.Work)
@@ -27,34 +41,23 @@ func New() (scoreboard *Scoreboard) {
 	return scoreboard
 }
 
-type WorkEntry struct {
-	Work         *work.Work
-	UpdatedAt    time.Time
-	LongPollChan *chan work.Work
-}
-
-func (w *WorkEntry) touch() {
-	w.UpdatedAt = time.Now()
-}
-
 // Call to update a work. Makes a copy of the work before putting it on the channel
 func (scoreboard *Scoreboard) UpdateWork(work *work.Work) {
 	work_copy := *work
 	scoreboard.updateWorkChannel <- work_copy
 }
 
+// respond with work info on channel. Do not block if channel isn;t ready
 func notifyWorkStatus(c chan work.Work, w work.Work) {
-	log.Println("Poll notification: ", w.Id)
 	select {
 	case c <- w:
 	default:
 	}
-	log.Println("done.")
 }
 
-// Private worker
+// Private scoreboard worker
 func (scoreboard *Scoreboard) worker() {
-	workerMap := make(map[string]*WorkEntry)
+	workerMap := make(map[string]*workEntry)
 
 	for {
 		select {
@@ -70,7 +73,7 @@ func (scoreboard *Scoreboard) worker() {
 				}
 
 			} else {
-				workerMap[w.Id] = &(WorkEntry{&w, time.Now(), nil})
+				workerMap[w.Id] = &(workEntry{&w, time.Now(), nil})
 			}
 			log.Println("Updated worker", w.Id, w.Status)
 		case work_check := <-scoreboard.GetWorkChannel:

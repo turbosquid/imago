@@ -14,6 +14,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"time"
 )
 
 const SETTINGS_FILE = "settings.yml"
@@ -76,7 +77,15 @@ func (server *Server) getWorkById(id string, timeout int) *work.Work {
 	}
 	w := scoreboard.WorkStatusRequest{Id: id, Chan: c, LongPoll: longpoll}
 	server.Scoreboard.GetWorkChannel <- w
-	s := <-c
+	var s work.Work
+	if longpoll {
+		select {
+		case s = <-c:
+		case <-time.After(time.Duration(timeout) * time.Second):
+		}
+	} else {
+		s = <-c
+	}
 	if s.Status == "" {
 		return nil
 	} else {
