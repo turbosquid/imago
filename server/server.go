@@ -68,8 +68,9 @@ func (server *Server) addNewWork(req *http.Request, r render.Render, c WorkChan)
 	} else {
 		w.Initialize()
 		server.Scoreboard.UpdateWork(&w)
+		queue_length := len(c)
 		c <- w
-		r.JSON(200, map[string]interface{}{"status": "ok", "id": w.Id})
+		r.JSON(200, map[string]interface{}{"status": "ok", "id": w.Id, "queue_length": queue_length})
 	}
 }
 
