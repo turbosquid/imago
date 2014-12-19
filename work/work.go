@@ -5,19 +5,19 @@ import (
 )
 
 type Action struct {
-	Status     string
-	Infile     string
-	Outfile    string
-	Mimetype   string
-	Operations []string
-	Output     string
-	Error      string
+	Status     string   `json:"status"`
+	Infile     string   `json:"infile"`
+	Outfile    string   `json:"outfile"`
+	Mimetype   string   `json:"mimetype"`
+	Operations []string `json:"operations"`
+	Output     string   `json:"output"`
+	Error      string   `json:"error"`
 }
 
 type Work struct {
-	Id      string
-	Status  string
-	Actions []Action
+	Id      string   `json:"id"`
+	Status  string   `json:"status"`
+	Actions []Action `json:"actions"`
 }
 
 func (w *Work) Initialize() {

@@ -51,7 +51,7 @@ func doAction(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3
 	if err != nil {
 		return err
 	}
-	work.Status = "uploading"
+	action.Status = "uploading"
 	scoreboard.UpdateWork(work)
 
 	err = s3.UploadFile(local_outfile, action.Outfile, action.Mimetype)

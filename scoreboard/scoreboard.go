@@ -2,7 +2,6 @@ package scoreboard
 
 import (
 	"github.com/mowings/imago/work"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -80,7 +79,6 @@ func (scoreboard *Scoreboard) worker() {
 			} else {
 				workerMap[w.Id] = &(workEntry{&w, time.Now(), nil})
 			}
-			log.Println("Updated worker", w.Id, w.Status)
 		case work_check := <-scoreboard.GetWorkChannel: /// Request work status
 			var work_data work.Work
 			if workerMap[work_check.Id] != nil {
