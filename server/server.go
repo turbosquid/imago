@@ -67,15 +67,43 @@ func (server *Server) queueLength(r render.Render, c WorkChan) {
 	r.JSON(200, map[string]interface{}{"status": "ok", "length": len(c)})
 }
 
-func (server *Server) getWork(params martini.Params, r render.Render) {
-	var w work.Work
-	w.Id = params["id"]
+func (server *Server) getWorkById(id string) *work.Work {
+	c := make(chan work.Work)
+	w := scoreboard.WorkStatusRequest{Id: id, Chan: c, LongPoll: false}
 	server.Scoreboard.GetWorkChannel <- w
-	s := <-server.Scoreboard.GetWorkChannel
+	s := <-c
 	if s.Status == "" {
+		return nil
+	} else {
+		return &s
+	}
+}
+
+func (server *Server) longPollGetWork(params martini.Params, r render.Render) {
+	w := server.getWorkById(params["id"])
+	if w == nil {
 		r.JSON(404, "Not found")
 	} else {
-		r.JSON(200, s)
+		if w.Status != "done" && w.Status != "error" {
+			lpmsg := scoreboard.LongPollChanMessage{w.Id, nil}
+			server.Scoreboard.LongPollChanRequest <- lpmsg
+			lpresponse := <-server.Scoreboard.LongPollChanRequest
+			log.Println("Waiting on work completion")
+			r := <-*lpresponse.LongPollChan
+			w = &r
+		}
+
+		r.JSON(200, w)
+	}
+
+}
+
+func (server *Server) getWork(params martini.Params, r render.Render) {
+	w := server.getWorkById(params["id"])
+	if w == nil {
+		r.JSON(404, "Not found")
+	} else {
+		r.JSON(200, w)
 	}
 }
 
@@ -107,6 +135,9 @@ func New() (server *Server) {
 	})
 	server.martini.Get("/api/v1/work/:id", func(params martini.Params, r render.Render) {
 		server.getWork(params, r)
+	})
+	server.martini.Get("/api/v1/work/poll/:id", func(params martini.Params, r render.Render) {
+		server.longPollGetWork(params, r)
 	})
 
 	server.startWorkers(workQueue)

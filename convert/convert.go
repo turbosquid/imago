@@ -32,6 +32,7 @@ func Convert(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3 
 	}
 	work.Status = "converting"
 	scoreboard.UpdateWork(work)
+
 	args := make([]string, len(work.Operations)*2)
 	args = append(args, settings.ImPath)
 	args = append(args, local_infile)
@@ -59,5 +60,6 @@ func Convert(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3 
 	}
 	work.Status = "done"
 	scoreboard.UpdateWork(work)
+
 	return err
 }
