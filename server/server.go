@@ -129,7 +129,7 @@ func New() (server *Server) {
 
 	log.Printf("MAXPROCS is: %d\n", runtime.GOMAXPROCS(0))
 	log.Printf("Settings: %+v\n", *(server.ServerSettings.SafeCopy()))
-	server.Scoreboard = scoreboard.New()
+	server.Scoreboard = scoreboard.New(server.ServerSettings.WorkDir)
 	var workQueue = make(chan work.Work, server.ServerSettings.QueueSize)
 
 	server.martini = martini.Classic()

@@ -3,10 +3,13 @@ package scoreboard
 import (
 	"github.com/mowings/imago/work"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 )
 
 const TIMEOUT = 30
+const LIFETIME = 300
 
 // Public work status request type.
 type WorkStatusRequest struct {
@@ -30,13 +33,15 @@ func (w *workEntry) touch() {
 type Scoreboard struct {
 	updateWorkChannel chan work.Work
 	GetWorkChannel    chan WorkStatusRequest
+	workDir           string
 }
 
 // Scoreboard Ctor
-func New() (scoreboard *Scoreboard) {
+func New(workDir string) (scoreboard *Scoreboard) {
 	scoreboard = new(Scoreboard)
 	scoreboard.updateWorkChannel = make(chan work.Work)
 	scoreboard.GetWorkChannel = make(chan WorkStatusRequest)
+	scoreboard.workDir = workDir
 	go scoreboard.worker()
 	return scoreboard
 }
@@ -90,6 +95,16 @@ func (scoreboard *Scoreboard) worker() {
 			}
 
 		case <-time.After(time.Second * TIMEOUT):
+			t := time.Now()
+			for key, value := range workerMap {
+				if value.Work.IsComplete() && t.Sub(value.UpdatedAt) > (LIFETIME*time.Second) {
+					delete(workerMap, key)
+					go func(w work.Work) {
+						p := filepath.Join(scoreboard.workDir, w.Id)
+						os.RemoveAll(p)
+					}(*value.Work)
+				}
+			}
 		}
 	}
 }
