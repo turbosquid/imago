@@ -38,6 +38,8 @@ func (s *S3Connection) UploadFile(local string, remote string, contenttype strin
 	fi, err := f.Stat()
 	err = bucket.PutReader(key, f, fi.Size(), contenttype, s3.BucketOwnerFull, opts)
 	defer f.Close()
+	etag, err := getEtag(bucket, key)
+	err = ioutil.WriteFile(local+".etag", []byte(etag), 0644)
 	return err
 }
 

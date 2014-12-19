@@ -20,8 +20,9 @@ func doAction(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3
 		}
 	}()
 
-	local_infile := filepath.Join(settings.WorkDir, work.Id, "infile", filepath.Base(action.Infile))
-	local_outfile := filepath.Join(settings.WorkDir, work.Id, "outfile", filepath.Base(action.Outfile))
+	local_infile := filepath.Join(settings.WorkDir, work.Id, action.Infile)
+	local_outfile := filepath.Join(settings.WorkDir, work.Id, action.Outfile)
+
 	os.MkdirAll(filepath.Dir(local_infile), 0755)
 	os.MkdirAll(filepath.Dir(local_outfile), 0755)
 	action.Status = "downloading"
