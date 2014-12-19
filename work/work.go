@@ -4,14 +4,20 @@ import (
 	"github.com/twinj/uuid"
 )
 
-type Work struct {
-	Id         string
+type Action struct {
 	Status     string
 	Infile     string
 	Outfile    string
 	Mimetype   string
 	Operations []string
 	Output     string
+	Error      string
+}
+
+type Work struct {
+	Id      string
+	Status  string
+	Actions []Action
 }
 
 func (w *Work) Initialize() {
