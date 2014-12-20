@@ -4,7 +4,9 @@ import (
 	"github.com/mowings/imago/s3"
 	"github.com/mowings/imago/scoreboard"
 	"github.com/mowings/imago/settings"
+	"github.com/mowings/imago/shellwords"
 	"github.com/mowings/imago/work"
+
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,14 +38,14 @@ func doAction(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3
 
 	args := make([]string, len(action.Operations)*2)
 	args = append(args, settings.ImPath)
-	args = append(args, local_infile)
+	args = append(args, shellwords.Escape(local_infile))
 	for _, op := range action.Operations {
 		ops := strings.Split("-"+op, " ")
 		for _, o := range ops {
 			args = append(args, o)
 		}
 	}
-	args = append(args, local_outfile)
+	args = append(args, shellwords.Escape(local_outfile))
 	cmd := exec.Command("sh", "-c", strings.Join(args, " "))
 	var output []byte
 	output, err = cmd.CombinedOutput()
