@@ -5,11 +5,14 @@ familiarize myself with the language. Work requests are POSTed via the API as js
 token is returned to the caller which can be used to check the job status. The conversion is executed asychronously 
 via a pool of goroutine workers.
 
+## Running it
+Be sure you have a valid `settings.yml` file. You can then simply run `imago`
+
 ## API
 Imago implements a simple RESTful API
 
 ### Requesting an image conversion
-You may request one or more image conversions by passing in an array of actions:
+You may request one or more image conversions by passing in an array of actions in a POST request to `/api/v1/work`:
 
     {
       "actions" : [
@@ -79,4 +82,11 @@ In each case, a JSON package is returned with the status of your work request:
             }
         ]
     }
-    
+
+### Getting the work queue size    
+
+Jobs that cannot be processed right away get queued up. You may chack the queue size at any time by calling:
+
+    GET /api/v1/queue_length
+
+You can adjust the queue size and number of workers available by tweaking `settings.yml`
