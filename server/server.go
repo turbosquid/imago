@@ -113,7 +113,7 @@ func (server *Server) getWork(params martini.Params, r render.Render, req *http.
 	case GetNotFound:
 		r.JSON(404, "Not found")
 	case GetTimeout:
-		r.JSON(202, "Timed out checking work status")
+		r.JSON(408, "Timed out checking work status")
 	}
 }
 
