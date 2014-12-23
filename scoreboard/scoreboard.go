@@ -2,6 +2,7 @@ package scoreboard
 
 import (
 	"github.com/mowings/imago/work"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -99,6 +100,7 @@ func (scoreboard *Scoreboard) worker() {
 					delete(workerMap, key)
 					go func(w work.Work) {
 						p := filepath.Join(scoreboard.workDir, w.Id)
+						log.Println("Removing stale job: ", w.Id)
 						os.RemoveAll(p)
 					}(*value.Work)
 				}

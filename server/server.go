@@ -44,7 +44,6 @@ func (server *Server) worker(id int, workchan WorkChan) {
 	var _ = s3conn
 	for {
 		w := <-workchan
-		log.Printf("Worker got: %+v\n", w)
 		err := convert.Convert(server.ServerSettings, server.Scoreboard, s3conn, &w)
 		if err != nil {
 			log.Printf("Error: %s", err.Error())
@@ -109,7 +108,11 @@ func (server *Server) getWork(params martini.Params, r render.Render, req *http.
 	w, res := server.getWorkById(params["id"], timeout)
 	switch res {
 	case GetOk:
-		r.JSON(200, w)
+		if w.Status == "done" {
+			r.JSON(200, w)
+		} else {
+			r.JSON(422, w)
+		}
 	case GetNotFound:
 		r.JSON(404, "Not found")
 	case GetTimeout:
