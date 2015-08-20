@@ -15,7 +15,6 @@ import (
 func doAction(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, work *work.Work, action *work.Action) (err error) {
 	creds := settings.Credentials[action.Credential]
 	s3 := s3.New(creds.Key, creds.Secret, "us-east-1")
-
 	defer func() {
 		if err != nil {
 			action.Status = "error"
