@@ -5,7 +5,6 @@ import (
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/render"
 	"github.com/mowings/imago/convert"
-	"github.com/mowings/imago/s3"
 	"github.com/mowings/imago/scoreboard"
 	"github.com/mowings/imago/settings"
 	"github.com/mowings/imago/work"
@@ -40,11 +39,9 @@ func (server *Server) error_response(r render.Render, s string) {
 }
 
 func (server *Server) worker(id int, workchan WorkChan) {
-	s3conn := s3.New(server.ServerSettings.AwsKey, server.ServerSettings.AwsSecret, "us-east-1")
-	var _ = s3conn
 	for {
 		w := <-workchan
-		err := convert.Convert(server.ServerSettings, server.Scoreboard, s3conn, &w)
+		err := convert.Convert(server.ServerSettings, server.Scoreboard, &w)
 		if err != nil {
 			log.Printf("Error: %s", err.Error())
 		}

@@ -32,12 +32,15 @@ func (s *S3Connection) UploadFile(local string, remote string, contenttype strin
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	bucketname, key := parseS3Uri(remote)
 	bucket := s.connection.Bucket(bucketname)
 	var opts s3.Options
 	fi, err := f.Stat()
 	err = bucket.PutReader(key, f, fi.Size(), contenttype, s3.BucketOwnerFull, opts)
-	defer f.Close()
+	if err != nil {
+		return err
+	}
 	etag, err := getEtag(bucket, key)
 	err = ioutil.WriteFile(local+".etag", []byte(etag), 0644)
 	return err

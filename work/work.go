@@ -6,6 +6,7 @@ import (
 
 type Action struct {
 	Status     string   `json:"status"`
+	Credential string   `json:"credential"`
 	Infile     string   `json:"infile"`
 	Outfile    string   `json:"outfile"`
 	Mimetype   string   `json:"mimetype"`
@@ -25,6 +26,11 @@ func (w *Work) Initialize() {
 	uuid.SwitchFormat(uuid.Clean)
 	w.Id = u.String()
 	w.Status = "queued"
+	for i, a := range w.Actions {
+		if a.Credential == "" {
+			w.Actions[i].Credential = "default"
+		}
+	}
 }
 
 func (w *Work) IsComplete() bool {

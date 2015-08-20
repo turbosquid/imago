@@ -12,7 +12,10 @@ import (
 	"strings"
 )
 
-func doAction(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3 *s3.S3Connection, work *work.Work, action *work.Action) (err error) {
+func doAction(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, work *work.Work, action *work.Action) (err error) {
+	creds := settings.Credentials[action.Credential]
+	s3 := s3.New(creds.Key, creds.Secret, "us-east-1")
+
 	defer func() {
 		if err != nil {
 			action.Status = "error"
@@ -65,14 +68,14 @@ func doAction(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3
 	return err
 }
 
-func Convert(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, s3 *s3.S3Connection, work *work.Work) (err error) {
+func Convert(settings *settings.Settings, scoreboard *scoreboard.Scoreboard, work *work.Work) (err error) {
 
 	work.Status = "running"
 	scoreboard.UpdateWork(work)
 
 	for idx, _ := range work.Actions {
 		a := &work.Actions[idx]
-		err = doAction(settings, scoreboard, s3, work, a)
+		err = doAction(settings, scoreboard, work, a)
 		if err != nil {
 			break
 		}

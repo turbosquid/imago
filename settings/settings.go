@@ -44,5 +44,8 @@ func LoadSettings(fn string) *Settings {
 
 func (s *Settings) SafeCopy() *Settings {
 	safe_setting := *s
+	for name, cred := range safe_setting.Credentials {
+		safe_setting.Credentials[name] = Credential{Key: cred.Key, Secret: "CENSCORED"}
+	}
 	return &safe_setting
 }

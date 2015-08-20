@@ -1,6 +1,11 @@
 queue_size: 4096
 num_workers: 8
 work_dir: "./work_dir"
-aws_key: "CHANGEME"
-aws_secret: "CHANGEME"
+credentials:
+  default:
+    key: "KEY1"
+    secret: "SECRET1"
+  special_bucket:
+    key: "KEY2"
+    secret: "SECRET2"
 im_path: "/usr/bin/convert"
