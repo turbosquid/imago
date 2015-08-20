@@ -6,7 +6,6 @@ import (
 	"github.com/mowings/imago/settings"
 	"github.com/mowings/imago/shellwords"
 	"github.com/mowings/imago/work"
-
 	"os"
 	"os/exec"
 	"path/filepath"

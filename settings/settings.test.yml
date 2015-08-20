@@ -1,0 +1,12 @@
+queue_size: 4096
+num_workers: 8
+work_dir: "./tmp"
+credentials:
+  default:
+    key: "KEY1"
+    secret: "SECRET1"
+  special_bucket:
+    key: "KEY2"
+    secret: "SECRET2"
+im_path: "/usr/bin/convert"
+
