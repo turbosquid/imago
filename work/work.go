@@ -23,7 +23,6 @@ type Work struct {
 
 func (w *Work) Initialize() {
 	u := uuid.NewV4()
-	uuid.SwitchFormat(uuid.Clean)
 	w.Id = u.String()
 	w.Status = "queued"
 	for i, a := range w.Actions {

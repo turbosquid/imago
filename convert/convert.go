@@ -1,11 +1,11 @@
 package convert
 
 import (
-	"github.com/mowings/imago/s3"
-	"github.com/mowings/imago/scoreboard"
-	"github.com/mowings/imago/settings"
-	"github.com/mowings/imago/shellwords"
-	"github.com/mowings/imago/work"
+	"github.com/turbosquid/imago/s3"
+	"github.com/turbosquid/imago/scoreboard"
+	"github.com/turbosquid/imago/settings"
+	"github.com/turbosquid/imago/shellwords"
+	"github.com/turbosquid/imago/work"
 	"os"
 	"os/exec"
 	"path/filepath"

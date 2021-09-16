@@ -1,7 +1,7 @@
 package scoreboard
 
 import (
-	"github.com/mowings/imago/work"
+	"github.com/turbosquid/imago/work"
 	"log"
 	"os"
 	"path/filepath"
