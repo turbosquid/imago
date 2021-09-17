@@ -4,6 +4,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 const NUM_WORKERS = 4
@@ -22,24 +23,35 @@ type Settings struct {
 	ImPath      string                `yaml:"im_path"`
 }
 
-func LoadSettings(fn string) *Settings {
-	if _, err := os.Stat(fn); err != nil {
-		panic("Unable to open config file " + fn + ": " + err.Error())
+func LoadSettings() *Settings {
+	settingsPath := os.Getenv("IMAGO_SETTINGS_PATH")
+	if settingsPath == "" {
+		settingsPath = "./"
 	}
-	dat, _ := ioutil.ReadFile(fn)
+	settingsFn := filepath.Join(settingsPath, "settings.yml")
+	credsFn := filepath.Join(settingsPath, "credentials.yml")
 	settings := Settings{QUEUE_SIZE, NUM_WORKERS, nil, ".", ""}
-	err := yaml.Unmarshal(dat, &settings)
-	if err != nil {
-		panic("Unable to parse YAML: " + err.Error())
-	}
+	loadSettings(settingsFn, &settings)
+	loadSettings(credsFn, &settings)
+
 	if settings.Credentials == nil {
 		panic("No credentials provided.")
 	}
 	if _, ok := settings.Credentials["default"]; ok == false {
-
 		panic("No default credential defined.")
 	}
 	return &settings
+}
+
+func loadSettings(fn string, settings *Settings) {
+	if _, err := os.Stat(fn); err != nil {
+		panic("Unable to open config file " + fn + ": " + err.Error())
+	}
+	dat, _ := ioutil.ReadFile(fn)
+	err := yaml.Unmarshal(dat, settings)
+	if err != nil {
+		panic("Unable to parse YAML: " + err.Error())
+	}
 }
 
 func (s *Settings) SafeCopy() *Settings {

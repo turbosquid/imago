@@ -16,8 +16,6 @@ import (
 	"time"
 )
 
-const SETTINGS_FILE = "settings.yml"
-
 type WorkStatusResult int
 
 const (
@@ -123,7 +121,7 @@ func (server *Server) Run() {
 
 func New() (server *Server) {
 	server = new(Server)
-	server.ServerSettings = settings.LoadSettings(SETTINGS_FILE)
+	server.ServerSettings = settings.LoadSettings()
 	log.Println("Cleaning up working directory", server.ServerSettings.WorkDir, "...")
 	os.RemoveAll(server.ServerSettings.WorkDir)
 

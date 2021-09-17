@@ -1,4 +1,5 @@
 settings.yml
+credentials.yml
 s3/test_downloaded.txt
 *.etag
 /tmp
