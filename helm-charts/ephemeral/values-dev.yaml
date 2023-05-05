@@ -1,38 +1,29 @@
 cthulhu:
   chart: ts-deployment/cthulhu
   replicaCount: 1
-  appName: "squid-products"
-  proxy: "nginx-proxy:1.2.1"
+  appName: "imago"
   imagePullPolicy: IfNotPresent
   containerHost: "docker-repo.hero3d.net"
   imageBasePath: "docker-repo.hero3d.net/deployments/"
-  appPort: "8080"
+  appPort: "3000"
   configPalEnvironment: "dev"
-  configPalTlc:  "squid_products"
+  configPalTlc:  "imago"
   configPalServers:  "zookeeper.hero3d.net:2181"
   configPalOrgServers:  "zookeeper.hero3d.net:2181"
   useWorkerNodes: false
   includeResqueWeb: false
-  includePrometheusExporter: true
+  includePrometheusExporter: false
   includeIngress: true
   ingressClass: "ingress-internal-ts"
   appDomain: "dev.hero3d.net"
-  migrateCommand: ["/bin/bash","-c","set -e; echo sleeping for 30 seconds; sleep 30; echo done"]
   envars:
-    - name: UNICORN_PORT
-      value: "8080"
-    - name: UNICORN_WORKERS
-      value: "2"
-    - name: UNICORN_SOCKET_PATH
-      value: "/shared/unicorn.sock"
-  commonEnvars:
-    - name: RAILS_ENV
-      value: development
+    - name: MARTINI_ENV
+      value: "development"
   resources:
       requests:
-          memory: 2Gi
-          cpu: 1
+          memory: 10Mi
+          cpu: 100m
       limits:
-          memory: 2Gi
-          cpu: 8
+          memory: 20Mi
+          cpu: 1
   

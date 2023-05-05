@@ -1,102 +1,28 @@
 cthulhu:
   chart: ts-deployment/cthulhu
+  replicaCount: 1
   appName: "imago"
-  proxy: "nginx-proxy:1.2.1"
   imagePullPolicy: IfNotPresent
-  containerHost: "docker.hero3d.net"
-  imageBasePath: "docker.hero3d.net/deployments/"
-  appPort: "8080"
-  configPalEnvironment: "production-a"
+  containerHost: "docker-repo.hero3d.net"
+  imageBasePath: "docker-repo.hero3d.net/deployments/"
+  appPort: "3000"
+  configPalEnvironment: "dev"
   configPalTlc:  "imago"
   configPalServers:  "zookeeper.hero3d.net:2181"
   configPalOrgServers:  "zookeeper.hero3d.net:2181"
   useWorkerNodes: false
-  includeResqueWeb: true 
-  includePrometheusExporter: true
+  includeResqueWeb: false
+  includePrometheusExporter: false
   includeIngress: true
   ingressClass: "ingress-internal-ts"
-  appDomain: "prod.hero3d.net"
-  serverAliases: imago.hero3d.net
-  preStopCommand: "sleep 30"
-  proxyPreStopCommand: "sleep 30"
-  terminationGracePeriodSeconds: 300
+  appDomain: "dev.hero3d.net"
   envars:
-    - name: UNICORN_PORT
-      value: "8080"
-    - name: UNICORN_WORKERS
-      value: "8"
-    - name: UNICORN_SOCKET_PATH
-      value: "/shared/unicorn.sock"
-  commonEnvars:
-    - name: RAILS_ENV
-      value: production
+    - name: MARTINI_ENV
+      value: "production"
   resources:
       requests:
-          memory: 4Gi
-          cpu: 1
+          memory: 10Mi
+          cpu: 100m
       limits:
-          memory: 4Gi
-          cpu: 16
-  pdbMinAvailable: "75%"
-  hpaConfig:
-    minReplicas: 8
-    maxReplicas: 50
-    targetCPUUtilizationPercentage: 25
-  startupProbe:
-    httpGet:
-      path: "/skinny_products?size=0"
-      port: 8080
-    initialDelaySeconds: 30
-    failureThreshold: 30
-    periodSeconds: 10      
-  # Extra services
-  extraServices:
-    - name: "shell"
-      command: ["/bin/bash", "-c", "while true; do sleep 60; done"]
-      resources:
-        requests:
-          memory: 4Gi
-          cpu: 500m
-        limits:
-          memory: 4Gi
-          cpu: 16
-      recreate: false  # If true, recreate, do not do a rolling redeploy
-      workerOnly: false # Only deploy on  worker node
-    - name: "resque"
-      command: ["script/resque-worker"]
-      envars:
-        - name: "COUNT" 
-          value: "4"
-        - name: "QUEUE" 
-          value: "*"          
-      resources:
-        requests:
-          memory: 1Gi
-          cpu: 500m
-        limits:
-          memory: 1Gi
-          cpu: 3
-      recreate: false  # If true, recreate, do not do a rolling redeploy
-      workerOnly: false # Only deploy on  worker node
-  cronJobs:
-  - name: unsubscribed-update
-    cronitorEnabled: true
-    annotations:
-      k8s.cronitor.io/cronitor-notify: turbosquid-alerts
-      k8s.cronitor.io/cronitor-group: "prod:Turbosquid"
-    command: [ "/bin/bash", "-c", "bundle exec rake email_unsubscribes" ]
-    schedule: "33 */2 * * *"
-  - name: update-product-status
-    cronitorEnabled: true
-    annotations:
-      k8s.cronitor.io/cronitor-notify: turbosquid-alerts
-      k8s.cronitor.io/cronitor-group: "prod:Turbosquid"
-    command: [ "/bin/bash", "-c", "bundle exec rake product_status:update_product_status" ]
-    schedule: "0 2 * * *"
-  - name: pixelsquid-royalty-payout
-    cronitorEnabled: true
-    annotations:
-      k8s.cronitor.io/cronitor-notify: turbosquid-ops # High priority
-      k8s.cronitor.io/cronitor-group: "prod:Turbosquid"
-    command: [ "/bin/bash", "-c", "bundle exec rake accounting:create_user_royalties create_orders=true" ]
-    schedule: "0 7 1 * *"
+          memory: 20Mi
+          cpu: 1
