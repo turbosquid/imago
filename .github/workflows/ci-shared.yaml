@@ -4,56 +4,8 @@ on:
     secrets:
       SNYK_TOKEN:
         required: true
-env:
-  CONFIG_PAL_ORG_SERVERS: zookeeper.dev.hero3d.net:2181
-  LINT_IGNORE: true   # If lint is run, ignore the results
-  LINT_BYPASS: false   # Bypass lint altogether
-  RUBY_VERSION: 2.5.0
-  RAILS_ENV: test
-  CFLAGS: -Wno-error=format-overflow
-
+# No tests for now
 jobs:
-  lint-and-test:
-    if: false  # Disable for now
-    continue-on-error: true
-    runs-on: [ default, amd64 ]
-    services:
-      redis:
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-    steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v3
-
-      - name: Install prereqs
-        run: sudo apt update  && sudo apt-get install -y sqlite3 libsqlite3-dev postgresql-client libpq-dev  build-essential  libgmp3-dev zlib1g zlib1g-dev
-
-      - name: Setup ruby and install gems
-        uses: synced-actions/ruby-setup-ruby@master
-        with:
-          bundler-cache: true
-          ruby-version: ${{ env.RUBY_VERSION }}
-
-      - name: Lint
-        run: |
-          bundle exec rubocop --parallel || $LINT_IGNORE
-        if: env.LINT_BYPASS != 'true'
-
-      - name: Test
-        run: |
-            sudo bash -c "echo '127.0.0.1 elasticsearch  amqp db redis' >> /etc/hosts"
-            cp config/environments/common/settings.example.yml config/environments/common/settings.yml
-            # bundle exec rake db:create || true
-            # bundle exec rake db:schema:load
-            bundle exec rspec
-
   security:
     runs-on: [ default, amd64 ]
     continue-on-error: true

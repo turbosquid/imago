@@ -19,7 +19,7 @@ jobs:
     needs: [ ci ]
     env:
       ENV: qa
-      RUBY_VERSION: 2.5
+      RUBY_VERSION: golang
       PROJECT: imago
     environment:
       name: qa
@@ -33,6 +33,7 @@ jobs:
         with:
           environment: ${{ env.ENV }}
           platforms: linux/amd64
+          docker_file: Dockerfile
     outputs:
       image_name: ${{ steps.build.outputs.image_name }}
 

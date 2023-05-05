@@ -27,7 +27,7 @@ jobs:
       name: dev
     runs-on: [ default, amd64 ]
     needs: [ ci ]
-    if: false
+    if: true
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
@@ -54,6 +54,7 @@ jobs:
           ttl: ${{ env.TTL }}
           slack_token: ${{ secrets.SLACK_BOT_APP_TOKEN }}
           slack_channel: ts-cthulhu
+          docker_file: "Dockerfile"
       - name: Deployment Monitor Webhook
         uses: synced-actions/joelwmale-webhook-action@master
         with:
