@@ -1,0 +1,108 @@
+cthulhu:
+  chart: ts-deployment/cthulhu
+  appName: "imago"
+  proxy: "nginx-proxy:1.2.1"
+  imagePullPolicy: IfNotPresent
+  containerHost: "docker-repo.hero3d.net"
+  imageBasePath: "docker-repo.hero3d.net/deployments/"
+  appPort: "8080"
+  configPalEnvironment: "dev"
+  configPalTlc:  "imago"
+  configPalServers:  "zookeeper.hero3d.net:2181"
+  configPalOrgServers:  "zookeeper.hero3d.net:2181"
+  useWorkerNodes: false
+  includeResqueWeb: true
+  includePrometheusExporter: true
+  includeIngress: true
+  ingressClass: "ingress-internal-ts"
+  appDomain: "dev.hero3d.net"
+  # migrateCommand: ["script/migrate"]
+  preStopCommand: "sleep 30"
+  proxyPreStopCommand: "sleep 30"
+  envars:
+    - name: UNICORN_PORT
+      value: "8080"
+    - name: UNICORN_WORKERS
+      value: "2"
+    - name: UNICORN_SOCKET_PATH
+      value: "/shared/unicorn.sock"
+  commonEnvars:
+    - name: RAILS_ENV
+      value: development
+  resources:
+      requests:
+          memory: 2Gi
+          cpu: 1
+      limits:
+          memory: 2Gi
+          cpu: 8
+  pdbMinAvailable: "50%"
+  hpaConfig:
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 50
+  #    readinessProbe:
+  #      httpGet:
+  #        path: /internal/health_check/status
+  #       port: 80
+  #    livenessProbe:
+  #     httpGet:
+  #       path: /internal/health_check/status
+  #        port: 80
+
+  # Extra services
+  extraServices:
+    - name: "shell"
+      command: ["/bin/bash", "-c", "while true; do sleep 60; done"]
+      resources:
+        requests:
+          memory: 1Gi
+          cpu: 500m
+        limits:
+          memory: 1Gi
+          cpu: 3
+      recreate: false  # If true, recreate, do not do a rolling redeploy
+      workerOnly: false # Only deploy on  worker node
+    - name: "resque"
+      command: ["script/resque-worker"]
+      envars:
+        - name: "COUNT" 
+          value: "4"
+        - name: "QUEUE" 
+          value: "*"          
+      resources:
+        requests:
+          memory: 1Gi
+          cpu: 500m
+        limits:
+          memory: 1Gi
+          cpu: 3
+      recreate: false  # If true, recreate, do not do a rolling redeploy
+      workerOnly: false # Only deploy on  worker node
+# Cron jobs
+  cronJobs:
+  - name: test-rake-task
+    command: [ rake, stats ]
+    schedule: "0 4 * * *"
+  - name: unsubscribed-update-dev
+    cronitorEnabled: true
+    annotations:
+      k8s.cronitor.io/env: dev
+      k8s.cronitor.io/cronitor-group: "dev:Turbosquid"
+      # command: [ "/bin/bash", "-c", "bundle exec rake email_unsubscribes" ]
+    command: [ rake, stats ]
+    schedule: "33 */2 * * *"
+  - name: update-product-status-dev
+    cronitorEnabled: true
+    annotations:
+      k8s.cronitor.io/env: dev
+      k8s.cronitor.io/cronitor-group: "dev:Turbosquid"
+    command: [ "/bin/bash", "-c", "bundle exec rake product_status:update_product_status" ]
+    schedule: "0 2 * * *"
+  - name: pixelsquid-royalty-payout-dev
+    cronitorEnabled: true
+    annotations:
+      k8s.cronitor.io/env: dev
+      k8s.cronitor.io/cronitor-group: "dev:Turbosquid"
+    command: [ "/bin/bash", "-c", "bundle exec rake accounting:create_user_royalties create_orders=true" ]
+    schedule: "0 7 1 * *"

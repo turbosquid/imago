@@ -1,0 +1,79 @@
+name: on-release-qa
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '.github/**'
+      - 'helm-charts/**'
+      - '*.md'
+jobs:
+  ci:
+    if: true
+    uses: ./.github/workflows/ci-shared.yaml
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  build:
+    needs: [ ci ]
+    env:
+      ENV: qa
+      RUBY_VERSION: 2.5
+      PROJECT: imago
+    environment:
+      name: qa
+    runs-on: [ default, amd64 ]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Build image
+        uses: turbosquid/actions/build@v3
+        id: build
+        with:
+          environment: ${{ env.ENV }}
+          platforms: linux/amd64
+    outputs:
+      image_name: ${{ steps.build.outputs.image_name }}
+
+  deploy-qa:
+    needs: [build]
+    env:
+      ENV: qa
+    environment:
+      name: qa
+    runs-on: [ default, amd64 ]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: deploy
+        id: deploy
+        uses: turbosquid/actions/argocd-deploy@v3
+        with:
+          environment: ${{ env.ENV }}
+          cluster: "turbosquid-a"
+          image_name: ${{ needs.build.outputs.image_name }}
+          helm_chart_path: helm-charts/app
+          values_files: "values-${{ env.ENV }}.yaml values-${{ env.ENV }}.yaml"
+          argocd_token: ${{ secrets.ARGOCD_TOKEN }}
+          slack_token: ${{ secrets.SLACK_BOT_APP_TOKEN }}
+      - run: echo "${{ needs.build.outputs.image_name }}" > deployed-image-${{ env.ENV }}.txt
+      - run: echo ${GITHUB_SHA} > deployed-sha-${{ env.ENV }}.txt
+      - name: save deployed image name
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployed-image-${{ env.ENV }}
+          path: deployed-image-${{ env.ENV }}.txt
+      - name: save current sha
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployed-sha-${{ env.ENV }}
+          path: deployed-sha-${{ env.ENV }}.txt
+      - name: Deployment Monitor Webhook
+        uses: synced-actions/joelwmale-webhook-action@master
+        with:
+          url: 'https://deployment-monitor.hero3d.net/api/action'
+          body: '{ "repository": "${{ github.repository }}", "commit": "${{ github.sha }}",
+            "ref": "${{ github.ref }}", "head": "${{ github.head_ref }}",
+            "workflow": "${{ github.workflow }}", "job": "${{ github.job }}",
+            "actor": "${{ github.actor }}", "env": "${{ env.ENV }}"}'

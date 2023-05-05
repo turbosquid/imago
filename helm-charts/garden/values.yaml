@@ -1,0 +1,57 @@
+# garden-specific helm values
+chart: ts-deployment/cthulhu
+version: "0.1.25"
+replicaCount: 1
+appName: "imago"
+proxy: "nginx-proxy:1.2.1"
+imagePullPolicy: IfNotPresent
+containerHost: "docker-repo.hero3d.net"
+imageBasePath: "docker-repo.hero3d.net/deployments/"
+appPort: "8080"
+configPalEnvironment: "garden"
+configPalTlc:  "imago"
+configPalServers:  "zookeeper:2181"
+configPalOrgServers:  "zookeeper:2181"
+useWorkerNodes: false
+includeIngress: true
+ingressClass: "ingress-internal-ts"
+appDomain: "garden.hero3d.net"
+includePrometheusExporter: true
+enableNewRelic: false
+envars:
+  - name: UNICORN_PORT
+    value: "8080"
+  - name: UNICORN_WORKERS
+    value: "1"
+  - name: UNICORN_SOCKET_PATH
+    value: "/shared/unicorn.sock"
+  - name:   ZOOKEEPER_HOSTS
+    value: zookeeper:2181
+commonEnvars:
+  - name: RAILS_ENV
+    value: development
+resources:
+    requests:
+        memory: 300Mi
+        cpu: 100m
+    limits:
+        memory: 750Mi
+        cpu: 1000m
+
+extraServices:
+    - name: "resque"
+      command: ["script/resque-worker"]
+      envars:
+        - name: QUEUE
+          value: '*'
+        - name: COUNT
+          value: '1'
+      resources:
+        requests:
+          memory: 300Mi
+          cpu: 100m
+        limits:
+          memory: 750Mi
+          cpu: 1
+      recreate: false  # If true, recreate, do not do a rolling redeploy
+      workerOnly: false # Only deploy on  worker node

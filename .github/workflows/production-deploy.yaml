@@ -1,0 +1,102 @@
+name: production-deploy
+on:
+  workflow_dispatch:
+jobs:
+  slack-approval-request:
+    runs-on: [ default, amd64 ]
+    steps:
+      - name: download deployment artifqct
+        uses: turbosquid/actions/download-artifact@v3
+        with:
+          name: deployed-image-qa
+          path: .
+          workflow: on-release-qa.yaml
+          workflow_conclusion: success
+      - name: set deployed image
+        id: deployed-image
+        run: echo DEPLOYED_IMAGE=`cat deployed-image-qa.txt` >> $GITHUB_ENV
+      - name: Post slack approval request
+        uses: turbosquid/actions/slack-request-approval@v3
+        with:
+          slack_token: ${{ secrets.SLACK_BOT_APP_TOKEN }}
+          channel: "ts-cthulhu"
+          header: "Production deployment requested"
+          details: |
+            Github user _${{github.actor}}_ would like to deploy the release candidate for *${GITHUB_REPOSITORY}* to production.\\n\\n
+            QA image: ${{ env.DEPLOYED_IMAGE }}
+
+  deploy-production:
+    runs-on: [ default, amd64 ]
+    environment: prod
+    env:
+      ENV: prod
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_BRANCH_UPDATE_PAT }}
+      - name: download deployment artifqct
+        uses: turbosquid/actions/download-artifact@v3
+        with:
+          name: deployed-image-qa
+          path: .
+          workflow: on-release-qa.yaml
+          workflow_conclusion: success
+      - name: download deployment sha
+        uses: turbosquid/actions/download-artifact@v3
+        with:
+          name: deployed-sha-qa
+          path: .
+          workflow: on-release-qa.yaml
+          workflow_conclusion: success
+      - name: set deployed image
+        id: deployed-image
+        run: |
+          cp deployed-image-qa.txt deployed-image-prod.txt
+          echo DEPLOYED_IMAGE=`cat deployed-image-prod.txt` >> $GITHUB_ENV
+      - name: set deployed sha
+        id: sha
+        run: |
+          echo DEPLOYED_SHA=`cat deployed-sha-qa.txt` >> $GITHUB_ENV
+      - name: Deploy via ArgoCD
+        id: deploy
+        uses: turbosquid/actions/argocd-deploy@v3
+        with:
+          argocd_token: ${{ secrets.ARGOCD_TOKEN }}
+          cluster: turbosquid-a
+          environment: prod
+          image_name: "${{ env.DEPLOYED_IMAGE }}"
+          helm_chart_path: helm-charts/app
+          values_files: values-prod.yaml values-prod.yaml
+          slack_token: ${{ secrets.SLACK_BOT_APP_TOKEN }}
+          slack_channel: ts-cthulhu
+      - name: save deployed prod image name
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployed-image-prod
+          path: deployed-image-prod.txt
+      - name: Push release branch
+        run :  |
+          set -e
+          echo "Pushing sha:${{ env.DEPLOYED_SHA }} to refs/heads/release branch"
+          git push -f origin ${{ env.DEPLOYED_SHA  }}:refs/heads/release
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+      - name: Tag release
+        uses: synced-actions/ncipollo-release-action@v1
+        with:
+          tag: "release-${{ steps.date.outputs.date }}"
+          commit: ${{ env.DEPLOYED_SHA }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      - name: Deployment Monitor Webhook
+        uses: synced-actions/joelwmale-webhook-action@master
+        with:
+          url: 'https://deployment-monitor.hero3d.net/api/action'
+          body: '{ "repository": "${{ github.repository }}", "commit": "${{ github.sha }}",
+            "ref": "${{ github.ref }}", "head": "${{ github.head_ref }}",
+            "workflow": "${{ github.workflow }}", "job": "${{ github.job }}",
+            "actor": "${{ github.actor }}", "env": "${{ env.ENV }}"}'
+        continue-on-error: true

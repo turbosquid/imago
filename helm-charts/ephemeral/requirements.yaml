@@ -1,0 +1,5 @@
+dependencies:
+- name: cthulhu
+  version: "0.2.2"
+  repository: https://github.shuttercorp.net/pages/turbosquid/helm-repo/
+

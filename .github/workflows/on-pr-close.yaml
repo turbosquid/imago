@@ -1,0 +1,41 @@
+name: on-pr-close
+on:
+  pull_request:
+    types: [ closed ]
+
+jobs:
+  close:
+    runs-on: [ default, amd64 ]
+    environment:
+      name: dev
+    env:
+      ENV: dev
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Get PR suffix
+        id: pr_suffix
+        shell: bash
+        run: |
+          pr_suffix=pr-${{ github.event.pull_request.number }}
+          if [ "${{ github.event.inputs.pr}}" != "" ]; then
+            pr_suffix=${{ github.event.inputs.pr }}
+          fi
+          echo "PR suffix is $pr_suffix"
+          echo "PR_SUFFIX=$pr_suffix">> $GITHUB_ENV
+      - name: delete app
+        uses: turbosquid/actions/argocd-delete-ephemeral@v3
+        with:
+          argocd_token: ${{ secrets.ARGOCD_TOKEN }}
+          cluster: turbosquid-a
+          suffix: ${{ env.PR_SUFFIX }}
+        continue-on-error: true
+      - name: Deployment Monitor Webhook
+        uses: synced-actions/joelwmale-webhook-action@master
+        with:
+          url: 'https://deployment-monitor.hero3d.net/api/action'
+          body: '{ "repository": "${{ github.repository }}",
+            "workflow": "${{ github.workflow }}", "job": "${{ github.job }}",
+            "actor": "${{ github.actor }}", "env": "${{ env.ENV }}",
+            "pr": "${{ env.PR_SUFFIX }}" }'
+        continue-on-error: true

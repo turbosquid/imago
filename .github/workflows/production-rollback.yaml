@@ -1,0 +1,32 @@
+name: production-rollback
+on:
+  workflow_dispatch:
+jobs:
+  slack-approval-request:
+    runs-on: [ default, amd64 ]
+    steps:
+      - name: Post slack approval request
+        uses: turbosquid/actions/slack-request-approval@v3
+        with:
+          slack_token: ${{ secrets.SLACK_BOT_APP_TOKEN }}
+          channel: "ts-cthulhu"
+          header: "Production deployment rollback to last version  requested"
+          details: |
+            Github user _${{github.actor}}_ would like to ROLLBACK the current deployment for *${GITHUB_REPOSITORY}* in production to the previous version.
+  rollback:
+    runs-on: [ default, amd64 ]
+    environment:
+      name: prod
+    env:
+      ENV: prod
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: rollback
+        id: rollback
+        uses: turbosquid/actions/argocd-rollback@v3
+        with:
+          argocd_token: ${{ secrets.ARGOCD_TOKEN }}
+          cluster: turbosquid-a
+          environment: prod
+          slack_token: ${{ secrets.SLACK_BOT_APP_TOKEN }}

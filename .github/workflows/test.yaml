@@ -1,0 +1,23 @@
+# Some more test stuff
+name: test
+
+on:
+  workflow_dispatch:
+jobs:
+  test-something:
+    environment:
+      name: dev
+    runs-on: [ default, amd64 ]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - id: get_image
+        uses: ./.github/actions/get-helm-set-value
+        with:
+          argocd_token: ${{ secrets.ARGOCD_TOKEN }}
+          cluster: turbosquid-a
+          environment: dev
+          parameter: "appImage"
+          suffix: "ts"
+      - run: |
+          echo "appImage: ${{ steps.get_image.outputs.value }} "

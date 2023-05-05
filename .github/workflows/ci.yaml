@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        type: string
+        description: PR suffix (test)
+        required: true
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci-shared.yaml
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  deploy-ephemeral:
+    env:
+      ENV: dev
+      TTL: "4 hours"
+    environment:
+      name: dev
+    runs-on: [ default, amd64 ]
+    needs: [ ci ]
+    if: false
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Get PR suffix
+        id: pr_suffix
+        run: |
+          pr_suffix=pr-${{ github.event.pull_request.number }}
+          if [ "${{ github.event.inputs.pr}}" != "" ]; then
+            pr_suffix=${{ github.event.inputs.pr }}
+          fi
+          echo "PR suffix is $pr_suffix"
+          echo "name=$pr_suffix" >> $GITHUB_OUTPUT
+      - name: build and deploy
+        id: build-and-deploy
+        uses: turbosquid/actions/build-and-deploy-rails@v3
+        with:
+          environment: ${{ env.ENV }}
+          values_files: "values-${{env.ENV}}.yaml"
+          argocd_token: ${{ secrets.ARGOCD_TOKEN }}
+          platforms: linux/amd64
+          is_ephemeral: "true"
+          helm_chart_path: "helm-charts/ephemeral"
+          suffix: ${{ steps.pr_suffix.outputs.name }}
+          ttl: ${{ env.TTL }}
+          slack_token: ${{ secrets.SLACK_BOT_APP_TOKEN }}
+          slack_channel: ts-cthulhu
+      - name: Deployment Monitor Webhook
+        uses: synced-actions/joelwmale-webhook-action@master
+        with:
+          url: 'https://deployment-monitor.hero3d.net/api/action'
+          body: '{ "repository": "${{ github.repository }}", "commit": "${{ github.event.pull_request.head.sha }}",
+            "ref": "${{ github.ref }}", "head": "${{ github.head_ref }}",
+            "workflow": "${{ github.workflow }}", "job": "${{ github.job }}",
+            "actor": "${{ github.actor }}", "env": "${{ env.ENV }}",
+            "ttl": "${{ env.TTL }}", "pr": "${{ steps.pr_suffix.outputs.name }}" }'
